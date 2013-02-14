@@ -1,0 +1,648 @@
+﻿
+Ext.namespace("GEOR.Addons");
+
+GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, process) {
+    this.id = id;
+    this.map = map;   
+    this.layers = layers;
+    this.options = options;
+    this.color = color;
+    this.aaa = null;
+    this.feature = feature;
+    this.process = process;
+    this.resultProcess = null;
+    this.marks = null;    
+    this.win = null;
+    this.events = new Ext.util.Observable() ;        
+    this.events.addEvents("wpssuccess") ; 
+    this.events.addEvents("wpserror") ;
+    this.events.addEvents("wpsclose") ;
+    this.getProfile = function (option, parameters) {
+        _self=this;
+        _parameters = parameters;     
+        // process configuration
+        this.process.dataInputs[0].data = {literalData: {value: parameters.pas.value}};
+        this.process.dataInputs[1].data = {literalData: {value:"json"}};
+        this.process.dataInputs[2].data = {complexData: {mimeType: "text/xml",value: _convertToGML(this.feature)}};
+        this.process.dataInputs[3].data = {literalData: {value: parameters.referentiel.value}};
+        this.process.responseForm = {rawDataOutput: {identifier: "result"}}; 
+        //this.process.responseForm = {responseDocument: {storeExecuteResponse: true,output: {asReference: false,identifier: 'result'}}};
+                        
+        // process execute
+        if (option == "new") {
+            OpenLayers.Request.POST({
+                url: this.options.wpsurl,
+                data: new OpenLayers.Format.WPSExecute().write(this.process),
+                success: _onExecuted,
+                failure: _onError                
+            });
+        } else {
+            OpenLayers.Request.POST({
+                url: this.options.wpsurl,
+                data: new OpenLayers.Format.WPSExecute().write(this.process),
+                success: _updateChart,
+                failure: _onErrorUpdated                
+            });               
+        }
+    };
+
+        /**
+         * APIMethod: create
+         * Return a  {Ext.menu.Item} for GEOR_addonsmenu.js and initialize this module.16:21 13/06/2012
+         *
+         * Parameters:
+         * m - {OpenLayers.Map} The map instance, {wpsconfig} the wps tool options.
+         */
+        this.chart = function () {            
+            var lang = OpenLayers.Lang.getCode();           
+            _color = this.color;
+            _map = this.map;
+            _drawLayer = this.layers[0];
+            _markersLayer = this.layers[1];
+            _resultLayer = this.layers[2];            
+            _config = this.options;	   
+            if (_config.chart){
+                Ext.chart.Chart.CHART_URL= _config.chart;
+            }           
+            var win = _createChart();
+            win.render(Ext.getBody());
+            this.win = win;
+            return win;            
+        };
+        this.destroy = function () {
+            this.map = null;
+            this.options = null;
+            this.color = null;
+            this.resultProcess = null;           
+            this.feature.destroy();            
+            Ext.each(this.marks, function(f, i) {f.destroy();});            
+            this.events = null;
+            this.layers = null;
+            if (this.win) {this.win.destroy();}                   
+        };
+   
+
+    /*
+     * Private
+     */
+    /**
+     * Property: _mask_loaders
+     * Array of {Ext.LoadMask} .
+     */
+    var _mask_loader = null;
+    
+    var _self = null;
+    
+    var _parameters = null;
+    
+   
+    /**
+     * Property: _map
+     * {OpenLayers.Map} The map instance.
+     */
+    var _map = null;
+    
+    var _color = null;
+    
+    var _data = null;
+	
+    
+
+    /**
+     * Property: url
+     * String The WPS MNT instance.
+     */
+   
+    /**
+     * Property: config
+     *{Object} Hash of options, with keys: pas, referentiel.
+     */
+
+    var _config = null;
+    
+    var _configForm = null;
+    
+    var _lineChart = null;
+    
+    var _infosForm = null;
+    
+    var _tabs = null;
+
+    /**
+     * Property: colors
+     *[Array] Hash of colors.
+     */
+    
+
+    /**
+     * Property: _drawLayer
+     * {OpenLayers.Layer.Vector}.
+     */
+
+    var _drawLayer = null;
+
+    /**
+     * Property: _markersLayer
+     * {OpenLayers.Layer.Markers}.
+     */
+    var _markersLayer = null;
+
+    var _resultLayer = null; 
+    
+
+    var tr = function (str) {
+            return OpenLayers.i18n(str);
+        };
+
+   
+    /**
+     * Method: createParametersForm
+     * Return a Form with tool parameters
+     *
+     *Parameter optional jobid integer, link with a Graphic Window
+     */
+    var createParametersForm = function () {
+            var referentielStore = new Ext.data.SimpleStore({
+                fields: [{
+                    name: "value",
+                    mapping: 0
+                }],
+                data: _parameters.referentiel.allowedValues
+            });
+            var pasStore = new Ext.data.SimpleStore({
+                fields: [{
+                    name: "value",
+                    mapping: 0
+                }],
+                data: _parameters.pas.allowedValues
+            });
+            var referentielCombo = new Ext.form.ComboBox({
+                name: "referentiel",
+                fieldLabel: _parameters.referentiel.title,
+                store: referentielStore,
+                valueField: "value",
+                value: _parameters.referentiel.value,
+                displayField: "value",
+                editable: false,
+                mode: "local",
+                triggerAction: "all",
+                listWidth: 167
+            });
+            var pasCombo = new Ext.form.ComboBox({
+                name: "pas",
+                fieldLabel: _parameters.pas.title,
+                store: pasStore,
+                valueField: "value",
+                value: _parameters.pas.value,
+                displayField: "value",
+                editable: false,
+                mode: "local",
+                triggerAction: "all",
+                listWidth: 167
+            });
+            _configForm = new Ext.FormPanel({
+                labelWidth: 100,
+                layout: "form",
+                bodyStyle: "padding: 10px",                
+                height: 200,
+                title: tr("addonprofile.parameters"),
+                defaults: {
+                    width: 200
+                },
+                defaultType: "textfield",
+                items: [referentielCombo, pasCombo],               
+                buttons: [{
+                    text: tr("addonprofile.refresh"),
+                    handler: function () {
+                        updateChartConfig();
+                    }
+                }]
+            });
+
+            return _configForm;
+        };
+    
+  
+   
+    /**
+     * Method: addmarksfeatures
+     * matérialise le sens de numérisation de la polyligne         *
+     * Parameters:
+     * graphicHandler - integer Identifiant de la fenêtre Graphique
+     */
+    var addmarksfeatures = function (infos) {
+            var beginPoint = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.Point(infos.firstpointX, infos.firstpointY));
+            /*beginPoint.attributes = {
+                profile: parseInt(jobid, 10)
+            };*/
+            beginPoint.style = {
+                pointRadius: 7,
+                externalGraphic: "app/addons/profile/img/icon-one.png",
+                graphicZIndex: 701
+            };
+            var endPoint = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.Point(infos.lastpointX, infos.lastpointY));
+            /*endPoint.attributes = {
+                profile: parseInt(jobid, 10)
+            };*/
+            endPoint.style = {
+                pointRadius: 7,
+                externalGraphic: "app/addons/profile/img/icon-two.png",
+                graphicZIndex: 701
+            };
+            _self.marks = [beginPoint, endPoint];
+            _resultLayer.addFeatures(_self.marks);            
+        };
+   /*
+     * Method: removedrawfeatures
+     * Supprime le tracé profil correspondant au Graphique
+     *
+     * Parameters:
+     * 
+     */
+    var removedrawfeatures = function () {
+            //var feature = _drawLayer.getFeaturesByAttribute("profile", parseInt(graphicHandler, 10));
+            _drawLayer.removeFeatures(_self.feature);
+            removemarksfeatures();
+            
+        };
+
+    var  removemarksfeatures = function () {
+         _resultLayer.removeFeatures(_self.marks);
+    }; 
+
+     /**
+     * Method: convertToGML
+     * Convertit un feature au format GML
+     *
+     * Parameters:
+     * feature - {OpenLayers.Feature.Vector}
+     */
+    var _convertToGML = function (feature) {
+            var gmlP = new OpenLayers.Format.GML();
+            var inGML = gmlP.write(feature).replace(/<\?xml.[^>]*>/, "");
+            return inGML;
+        };
+
+   
+    /**
+     * Method: convert2csv
+     * Appelle le service de téléchargement csv
+     * Parameters:
+     * data - {JSON Data}.
+     */
+    var convert2csv = function (data) {
+            var format = new OpenLayers.Format.JSON();
+            OpenLayers.Request.POST({
+                url: "ws/csv/",
+                data: format.write({
+                    columns: ["distance", "x", "y", "altitude", "pente"],
+                    data: data
+                }),
+                success: function (response) {
+                    var o = Ext.decode(response.responseText);
+                    window.location.href = o.filepath;
+                }
+            });
+        };
+   
+    /**
+     * Method: updateChartConfig
+     * Modifie les valeurs Référentiel et pas avant un nouvel appel du service WPS
+     * Parameters:
+     * jobid - integer Handler de la fenêtre.
+     */
+    var updateChartConfig = function () {
+            //Création des messages de Loading
+            _mask_loader = new Ext.LoadMask(_configForm.getEl().getAttribute("id"), {
+                msg: tr("addonprofile.update")
+            });
+            
+            _mask_loader.show();
+            var parameters = {
+                pas: {
+                    value: _configForm.getForm().findField("pas").getValue()
+                },
+                referentiel: {
+                    value: _configForm.getForm().findField("referentiel").getValue()
+                }
+            };
+            
+            // _self.events.fireEvent("queryupdate",_self.feature,"update",parameters) ;
+
+            _self.getProfile("update", parameters);
+        };
+    /**
+     * Method: updatedChart
+     * Callback executed when the the WPS Execute (update) response is received
+     * Parameters:
+     * process - {WPS.Process}.
+     */
+    //removemarksfeatures
+    var _updateChart = function (resultProcess) {
+    
+        try {
+            var obj= (new OpenLayers.Format.JSON()).read(resultProcess.responseText);
+            if (obj.profile && obj.profile.points.length > 0) {
+                 _self.resultProcess = obj;
+                 _data = obj.profile.points;
+                var infos = _self.resultProcess.profile.infos;        
+                removemarksfeatures();                       
+                addmarksfeatures(infos);
+                var store = new Ext.data.JsonStore({
+                    fields: [{
+                        name: "d",
+                        mapping: 0
+                    }, {
+                        name: "x",
+                        mapping: 1
+                    }, {
+                        name: "y",
+                        mapping: 2
+                    }, {
+                        name: "z",
+                        mapping: 3
+                    }, {
+                        name: "pente",
+                        mapping: 4
+                    }]
+                });
+                store.loadData(obj.profile.points);                
+                _infosForm.getForm().findField("referentiel").setValue(infos.referentiel);
+                _infosForm.getForm().findField("distance").setValue(Math.round(infos.distance) + " m");
+                _infosForm.getForm().findField("denivelepositif").setValue(Math.round(infos.denivelepositif) + " m");
+                _infosForm.getForm().findField("denivelenegatif").setValue(Math.round(infos.denivelenegatif) + " m");
+                _infosForm.getForm().findField("processedpoints").setValue(infos["processed points"]);
+                _lineChart.store = store;
+                _lineChart.xAxis.title = "Distance (m)" + " sources : (" + infos.referentiel + ")";                
+                _mask_loader.hide();
+                _tabs.setActiveTab(0);
+                             
+            } else {               
+                GEOR.util.errorDialog({
+                    title: tr("addonprofile.error"),
+                    msg: tr("addonprofile.error5")
+                });
+            }
+        }
+        catch (err) {
+            var msg = "Erreur";           
+            var format = new OpenLayers.Format.XML();
+            var doc = format.read(resultProcess.responseText);            
+            if (format.getElementsByTagNameNS(doc,"*","ExceptionText"))
+             {
+                node = format.getElementsByTagNameNS(doc,"*","ExceptionText")[0];
+                msg = (node.innerText || node.text || node.textContent).trim();
+
+             }
+            _self.events.fireEvent("wpserror", msg, _self) ;            
+        }
+            
+    };
+    
+    var _onExecuted = function (resultProcess) {
+        try {
+            var obj= (new OpenLayers.Format.JSON()).read(resultProcess.responseText);
+            if (obj.profile && obj.profile.points.length > 0) {
+                 _self.resultProcess = obj;
+                 _data = obj.profile.points;
+                 _self.events.fireEvent("wpssuccess",_self) ;            
+            } else {               
+                GEOR.util.errorDialog({
+                    title: tr("addonprofile.error"),
+                    msg: tr("addonprofile.error5")
+                });
+            }
+        }
+        catch (err) {
+            var msg = "Erreur";           
+            var format = new OpenLayers.Format.XML();
+            var doc = format.read(resultProcess.responseText);            
+            if (format.getElementsByTagNameNS(doc,"*","ExceptionText"))
+             {
+                node = format.getElementsByTagNameNS(doc,"*","ExceptionText")[0];
+                msg = (node.innerText || node.text || node.textContent).trim();
+
+             }
+            _self.events.fireEvent("wpserror", msg, _self) ;
+        }
+        
+    };
+    
+     /**
+     * Method: onError
+     * Callback executed when the the WPS Execute Error response is received
+     * Parameters:
+     * process - {WPS.Process}.
+     */
+    var _onError = function (process) {
+            GEOR.util.errorDialog({
+                title: tr("addonprofile.error"),
+                msg: process.exception.text
+            });
+            var inputfeature = new OpenLayers.Format.GML().read(process.getInput("data").value)[0];
+            var id = inputfeature.attributes["profile"];
+            removedrawfeatures(id);
+        };
+   
+
+    /**
+     * Method: onErrorUpdated
+     * Callback executed when the the WPS Execute Updated Error response is received
+     * Parameters:
+     * process - {WPS.Process}.
+     */
+    var _onErrorUpdated = function (process) {
+            GEOR.util.errorDialog({
+                title: tr("addonprofile.error"),
+                msg: process.exception.text
+            });
+            _mask_loader.hide();
+
+        };
+    /**
+     * Method: onExecuted
+     * Callback executed when the the WPS Execute response is received
+     * Parameters:
+     * process - {WPS.Process}.
+     */
+    var _createChart = function () {            
+            var infos = _self.resultProcess.profile.infos;            
+            addmarksfeatures(infos);
+            var longueur = infos.distance;
+            _drawLayer.setZIndex(600);
+            _resultLayer.setZIndex(601);
+            _markersLayer.setZIndex(602);
+            var store = new Ext.data.JsonStore({                    
+                fields: [{
+                    name: "d",
+                    mapping: 0
+                }, {
+                    name: "x",
+                    mapping: 1
+                }, {
+                    name: "y",
+                    mapping: 2
+                }, {
+                    name: "z",
+                    mapping: 3
+                }, {
+                    name: "pente",
+                    mapping: 4
+                }]
+            });
+            store.loadData(_self.resultProcess.profile.points);
+            _lineChart = new Ext.chart.LineChart({                
+                store: store,
+                title: tr("addonprofile.chart"),
+                xField: "d",                
+                yAxis: new Ext.chart.NumericAxis({                
+                    labelRenderer: Ext.util.Format.numberRenderer("0")
+                }),
+                xAxis: new Ext.chart.NumericAxis({
+                    title: tr("addonprofile.distance") + " " + tr("addonprofile.sources") + " : " + "(" + infos.referentiel + ")"                    
+                }),
+                tipRenderer: function (chart, record) {
+                    return tr("addonprofile.elevation") + " : " + record.data.z + " m" + "\n" + tr("addonprofile.distance") + " : " + record.data.d + " m" + "\n" + tr("addonprofile.inclination") + " : " + Ext.util.Format.number(record.data.pente, "0.0") + "%";
+                },
+                extraStyle: {
+                    padding: 10,
+                    animationEnabled: true,
+                    yAxis: {
+                        color: 0x3366cc,
+                        majorTicks: {
+                            color: 0x3366cc,
+                            length: 4
+                        },
+                        minorTicks: {
+                            color: 0x3366cc,
+                            length: 2
+                        },
+                        majorGridLines: {
+                            size: 1,
+                            color: 0xdddddd
+                        }
+                    },
+                    xAxis: {                        
+                        color: 0x3366cc,
+                        majorTicks: {
+                            color: 0x3366cc,
+                            length: 4
+                        },
+                        minorTicks: {
+                            color: 0x3366cc,
+                            length: 2
+                        },
+                        majorGridLines: {
+                            size: 1,
+                            color: 0xdddddd
+                        }
+                    }
+                },
+                series: [{
+                    type: "line",
+                    yField: "z",
+                    style: {
+                        color:_color,
+                        // couleur de  la ligne
+                        lineSize: 1,
+                        //taille de la ligne
+                        fillColor: _color,
+                        // couleurs des points
+                        fillAlpha: 0.8,
+                        // Opacité des points
+                        size: 4 // taille des points
+                    }
+                }],
+                listeners: {
+                    itemmouseover: function (o) {
+                        _markersLayer.clearMarkers();
+                        var ptResult = new OpenLayers.LonLat(o.item.x, o.item.y);
+                        var size = new OpenLayers.Size(20, 34);
+                        var offset = new OpenLayers.Pixel(-(size.w / 2), -size.h);
+                        var icon = new OpenLayers.Icon("app/addons/profile/img/googlemarker.png", size, offset);
+                        _markersLayer.addMarker(new OpenLayers.Marker(ptResult, icon));       
+                    },
+                        itemmouseout: function (o) {
+                            _markersLayer.clearMarkers();
+                        }
+                    }
+                });
+
+
+            _infosForm = new Ext.FormPanel({
+                title: tr("addonprofile.properties"),
+                //id: "infosform" + jobid,
+                defaults: {
+                    xtype: "textfield"
+                },
+                height: 200,
+                bodyStyle: "padding: 10px",
+                items: [{
+                    fieldLabel: tr("addonprofile.referential"),
+                    name: "referentiel",
+                    value: infos.referentiel
+                },
+
+                {
+                    fieldLabel: tr("addonprofile.totaldistance"),
+                    name: "distance",
+                    value: Math.round(infos.distance) + " m"
+                }, {
+                    fieldLabel: tr("addonprofile.positivecumul"),
+                    name: "denivelepositif",
+                    value: Math.round(infos.denivelepositif) + " m"
+                }, {
+                    fieldLabel: tr("addonprofile.negativecumul"),
+                    name: "denivelenegatif",
+                    value: Math.round(infos.denivelenegatif) + " m"
+                }, {
+                    fieldLabel: tr("addonprofile.processedpoints"),
+                    name: "processedpoints",
+                    value: infos["processed points"]
+                }],
+                buttons: [{
+                    iconCls: "wps-csv",
+                    tooltip: tr("addonprofile.csvdownload"),
+                    handler: function () {
+                        convert2csv(_data);
+                    }
+                }]
+            });
+
+            var configForm = createParametersForm();
+
+            _tabs = new Ext.TabPanel({
+                activeTab: 0,
+                //id: "tabpanel" + jobid,
+                autoHeight: false,
+                height: 224,
+                items: [_lineChart, _infosForm, configForm]
+            });
+
+            var chartWindow = new Ext.Window({
+                closable: true,
+                //id: "profile" + jobid,
+                title: tr("addonprofile.charttitle")+ _self.id,
+                pageX: 10,
+                pageY: Ext.getBody().getHeight() - (250 + (parseInt( _self.id, 10) * 20)),
+                resizable: true,
+                width: 600,
+                //height   : 450,
+                border: false,
+                plain: true,
+                region: "center",
+                items: [_tabs],
+                listeners: {
+                    "close": function () {
+                        //removedrawfeatures();                        
+                        _self.events.fireEvent("wpsclose",_self) ;
+                        _self.destroy();
+                    }
+                }
+            });
+
+            return chartWindow;
+        };
+
+/*})();*/
+};
