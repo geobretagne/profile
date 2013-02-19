@@ -121,9 +121,8 @@ GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, p
 
     var _self = null;
 
-    var _parameters = null;
-
-
+    var _parameters = null;   
+    
     /**
      * Property: _map
      * {OpenLayers.Map} The map instance.
@@ -370,7 +369,7 @@ GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, p
         var obj = getResult(resultProcess);
         if (obj && obj.profile && obj.profile.points.length > 0) {
             _self.resultProcess = obj;
-            _data = obj.profile.points;
+            _data = obj.profile;            
             var infos = _self.resultProcess.profile.infos;
             removemarksfeatures();
             addmarksfeatures(infos);
@@ -392,12 +391,11 @@ GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, p
                     mapping: 4
                 }]
             });
-            store.loadData(obj.profile.points);
-            _infosForm.getForm().findField("referentiel").setValue(infos.referentiel);
-            _infosForm.getForm().findField("distance").setValue(Math.round(infos.distance) + " m");
-            _infosForm.getForm().findField("denivelepositif").setValue(Math.round(infos.denivelepositif) + " m");
-            _infosForm.getForm().findField("denivelenegatif").setValue(Math.round(infos.denivelenegatif) + " m");
-            _infosForm.getForm().findField("processedpoints").setValue(infos["processed points"]);
+            store.loadData(obj.profile.points);             
+            console.log("infos :", infos);
+            if (_infosForm.body) {
+                _infosForm.update(infos);
+            }                     
             _lineChart.store = store;
             _lineChart.xAxis.title = "Distance (m)" + " sources : (" + infos.referentiel + ")";
             _mask_loader.hide();
@@ -473,7 +471,7 @@ GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, p
         var obj = getResult(resultProcess);
         if (obj && obj.profile && obj.profile.points.length > 0) {
             _self.resultProcess = obj;
-            _data = obj.profile.points;
+            _data = obj.profile;
             _self.events.fireEvent("wpssuccess", _self);
         } else {
             var format = new OpenLayers.Format.XML();
@@ -620,49 +618,38 @@ GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, p
                     _markersLayer.clearMarkers();
                 }
             }
-        });
-
-
-        _infosForm = new Ext.FormPanel({
-            title: tr("addonprofile.properties"),
-            //id: "infosform" + jobid,
-            defaults: {
-                xtype: "textfield"
-            },
-            height: 200,
+        });   
+        
+        
+            
+        var tpl = new Ext.Template(
+                    '<div><p>' + tr("addonprofile.referential") +': <b>{referentiel}</b></p></br>',
+                    '<p>' + tr("addonprofile.totaldistance") +': <b>{distance} m</b></p></br>',
+                    '<p>' + tr("addonprofile.positivecumul") +': <b>{denivelepositif} m</b></p></br>',
+                    '<p>' + tr("addonprofile.negativecumul") +': <b>{denivelenegatif} m</b></p></br>',
+                    '<p>' + tr("addonprofile.processedpoints") +': <b>{processedpoints} points interpolés en {executedtime} secondes</b></p></div>'                    
+                );
+       
+        
+        _infosForm = new Ext.Panel({            
+            tpl:tpl,
+            data: infos,            
             bodyStyle: "padding: 10px",
-            items: [{
-                fieldLabel: tr("addonprofile.referential"),
-                name: "referentiel",
-                value: infos.referentiel
+            title: tr("addonprofile.properties"),
+            listeners: {'afterrender' : function(p) {
+                p.update(_data.infos);             
+                }
             },
-
-            {
-                fieldLabel: tr("addonprofile.totaldistance"),
-                name: "distance",
-                value: Math.round(infos.distance) + " m"
-            }, {
-                fieldLabel: tr("addonprofile.positivecumul"),
-                name: "denivelepositif",
-                value: Math.round(infos.denivelepositif) + " m"
-            }, {
-                fieldLabel: tr("addonprofile.negativecumul"),
-                name: "denivelenegatif",
-                value: Math.round(infos.denivelenegatif) + " m"
-            }, {
-                fieldLabel: tr("addonprofile.processedpoints"),
-                name: "processedpoints",
-                value: infos["processed points"]
-            }],
-            buttons: [{
+            bbar:[{
                 iconCls: "wps-csv",
                 tooltip: tr("addonprofile.csvdownload"),
                 handler: function () {
-                    convert2csv(_data);
+                    convert2csv(_data.points);
                 }
-            }]
+            }]        
         });
-
+        
+        //tpl.overwrite(_infosForm.body, infos);
         var configForm = createParametersForm();
 
         _tabs = new Ext.TabPanel({

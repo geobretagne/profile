@@ -60,7 +60,7 @@
               "addonprofile.loadgmltip": "Load gml file.",
               "addonprofile.parameters": "Parameters",
               "addonprofile.parameterstip": "Parameters",  
-              "addonprofile.processedpoints": "nb points"      
+              "addonprofile.processedpoints": "process"      
         },
         "fr": {            
             "addonprofile.error": "Erreur sur l'outil profil",
@@ -95,7 +95,7 @@
               "addonprofile.loadgmltip": "Charger un fichier gml.",
               "addonprofile.parameters": "Paramètres",
               "addonprofile.parameterstip": "Paramètres",
-            "addonprofile.processedpoints": "nb points"
+            "addonprofile.processedpoints": "process"
         }
     }
 }
