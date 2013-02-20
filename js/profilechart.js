@@ -395,6 +395,7 @@ GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, p
             console.log("infos :", infos);
             if (_infosForm.body) {
                 _infosForm.update(infos);
+                _registerTips();
             }                     
             _lineChart.store = store;
             _lineChart.xAxis.title = "Distance (m)" + " sources : (" + infos.referentiel + ")";
@@ -511,6 +512,29 @@ GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, p
         _mask_loader.hide();
 
     };
+    
+    var _registerTips = function () {
+        var tip1 = new Ext.ToolTip({
+                    target: 'wps-process-div',
+                    html: tr("addonprofile.processedpoints")
+        });
+        var tip2 = new Ext.ToolTip({
+                    target: 'wps-referentiel-div',
+                    html: tr("addonprofile.referential")
+        });
+        var tip3 = new Ext.ToolTip({
+                    target: 'wps-distance-div',
+                    html: tr("addonprofile.totaldistance")
+        });
+        var tip4 = new Ext.ToolTip({
+                    target: 'wps-positive-div',
+                    html: tr("addonprofile.positivecumul")
+        });
+        var tip5 = new Ext.ToolTip({
+                    target: 'wps-negative-div',
+                    html: tr("addonprofile.negativecumul")
+        });        
+    };
     /**
      * Method: onExecuted
      * Callback executed when the the WPS Execute response is received
@@ -623,11 +647,11 @@ GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, p
         
             
         var tpl = new Ext.Template(
-                    '<div><p>' + tr("addonprofile.referential") +': <b>{referentiel}</b></p></br>',
-                    '<p>' + tr("addonprofile.totaldistance") +': <b>{distance} m</b></p></br>',
-                    '<p>' + tr("addonprofile.positivecumul") +': <b>{denivelepositif} m</b></p></br>',
-                    '<p>' + tr("addonprofile.negativecumul") +': <b>{denivelenegatif} m</b></p></br>',
-                    '<p>' + tr("addonprofile.processedpoints") +': <b>{processedpoints} points interpolés en {executedtime} secondes</b></p></div>'                    
+                    '<div class="wps-div"><div id="wps-referentiel-div" class="wps-referentiel">{referentiel}</div>',
+                    '<div id="wps-distance-div" class="wps-distance">{distance} m</div>',
+                    '<div id="wps-positive-div" class="wps-positive">{denivelepositif} m</div>',
+                    '<div id="wps-negative-div" class="wps-negative">{denivelenegatif} m</div>',
+                    '<div id="wps-process-div" class="wps-process">{processedpoints} points interpolés en {executedtime} secondes</div></div>'                    
                 );
        
         
@@ -637,7 +661,8 @@ GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, p
             bodyStyle: "padding: 10px",
             title: tr("addonprofile.properties"),
             listeners: {'afterrender' : function(p) {
-                p.update(_data.infos);             
+                p.update(_data.infos);
+                _registerTips();
                 }
             },
             bbar:[{

@@ -4,6 +4,45 @@
 .wps-linechart {
     background-image: url(../img/linechart.png) !important;    
 }
+.wps-div {  
+   padding-left: 40px;   
+}
+
+.wps-process {
+   background-image: url(../img/process.png) !important;  
+   background-repeat:no-repeat;
+   height: 20px;
+   padding-left: 40px;
+   padding-bottom: 10px;   
+}
+.wps-referentiel {
+   background-image: url(../img/map.png) !important;  
+   background-repeat:no-repeat;
+   height: 20px;
+   padding-left: 40px;
+   padding-bottom: 10px;   
+}
+.wps-distance {
+   background-image: url(../img/arrow-double.png) !important;  
+   background-repeat:no-repeat;
+   height: 20px;
+   padding-left: 40px;
+   padding-bottom: 10px;   
+}
+.wps-positive {
+   background-image: url(../img/arrow-up.png) !important;  
+   background-repeat:no-repeat;
+   height: 20px;
+   padding-left: 40px;
+   padding-bottom: 10px;   
+}
+.wps-negative {
+   background-image: url(../img/arrow-down.png) !important;  
+   background-repeat:no-repeat;
+   height: 20px;
+   padding-left: 40px;
+   padding-bottom: 10px;   
+}
 .wps-uploadfile {
     background-image: url(../img/upload_file.png) !important;    
 }
