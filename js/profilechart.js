@@ -17,6 +17,7 @@ GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, p
     this.events.addEvents("wpserror");
     this.events.addEvents("wpsclose");
     this.getProfile = function (option, parameters) {
+        GEOR.waiter.show();
         _self = this;
         _parameters = parameters;
         // process configuration
@@ -400,6 +401,7 @@ GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, p
             _lineChart.store = store;
             _lineChart.xAxis.title = "Distance (m)" + " sources : (" + infos.referentiel + ")";
             _mask_loader.hide();
+            GEOR.waiter.hide();
             _tabs.setActiveTab(0);
 
         } else {
@@ -408,6 +410,7 @@ GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, p
             var node = format.getElementsByTagNameNS(doc, "*", "ExceptionText")[0];
             var msg = (node.innerText || node.text || node.textContent).trim();
             _self.events.fireEvent("wpserror", msg, _self)
+            GEOR.waiter.hide();
         }
 
     };
@@ -480,6 +483,7 @@ GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, p
             var node = format.getElementsByTagNameNS(doc, "*", "ExceptionText")[0];
             var msg = (node.innerText || node.text || node.textContent).trim();
             _self.events.fireEvent("wpserror", msg, _self)
+            GEOR.waiter.hide();
         }
 
     };
@@ -495,6 +499,7 @@ GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, p
             title: tr("addonprofile.error"),
             msg: "erreur"
         });
+        GEOR.waiter.hide();
     };
 
 
@@ -510,6 +515,7 @@ GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, p
             msg: "erreur"
         });
         _mask_loader.hide();
+        GEOR.waiter.hide();
 
     };
     
@@ -666,7 +672,8 @@ GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, p
                 }
             },
             bbar:[{
-                iconCls: "wps-csv",
+                iconCls: "geor-btn-download",
+                text:tr("addonprofile.csvdownload"),
                 tooltip: tr("addonprofile.csvdownload"),
                 handler: function () {
                     convert2csv(_data.points);
@@ -707,5 +714,6 @@ GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, p
             }
         });
         return chartWindow;
+        GEOR.waiter.hide();
     };
 };
