@@ -229,7 +229,7 @@ class Process(WPSProcess):
         self.status.set("Opening MNT",30)
         
         if Referentiel == 'srtm 90':
-          img = gdal.Open('/var/data/srtm_36_03.tif', GA_ReadOnly)        
+          img = gdal.Open('/var/data/srtm93_03.tif', GA_ReadOnly)        
         
         if img is None:
           return Exception('Could not open %s' % (Referentiel))
