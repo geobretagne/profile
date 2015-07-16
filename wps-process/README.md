@@ -10,7 +10,7 @@ Sur la base d'une polyligne passée en paramètre, le process retourne un tablea
 paramètres d'entrée
 ===================
 * géométrie (gml)
-* projection (projection associée à la géométrie)
+* projection (projection associée à la géométrie et donc celle de mapfishapp si on utilise l'addon profile)
 * format de sortie (json|texte)
 * référentie utilisé (si plusieurs mnt sont disponibles, il faut indiquer lequel utiliser)
 
