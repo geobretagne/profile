@@ -1,20 +1,20 @@
 Process pywps
 =============
-Le script python getProfileProcess est un GÈotraitement [pywps] inspirÈ pour la partie densification de (https://svn.osgeo.org/gdal/trunk/gdal/swig/python/samples/densify.py)
+Le script python getProfileProcess est un G√©otraitement [pywps] inspir√© pour la partie densification de (https://svn.osgeo.org/gdal/trunk/gdal/swig/python/samples/densify.py)
 Copier ce fichier dans le dossier processes d'une instance [pywps] (http://pywps.wald.intevation.org/documentation/process.html)
 
 Principe
 ========
-Sur la base d'une polyligne passÈe en paramËtre, le process retourne un tableau de points enrichi de l'altitude calculÈe pour chaque point
+Sur la base d'une polyligne pass√©e en param√®tre, le process retourne un tableau de points enrichi de l'altitude calcul√©e pour chaque point
 
-paramËtres d'entrÈe
+param√®tres d'entr√©e
 ===================
-* gÈomÈtrie (gml)
-* projection (projection associÈe ‡ la gÈomÈtrie)
+* g√©om√©trie (gml)
+* projection (projection associ√©e √† la g√©om√©trie)
 * format de sortie (json|texte)
-* rÈfÈrentie utilisÈ (si plusieurs mnt sont disponibles, il faut indiquer lequel utiliser)
+* r√©f√©rentie utilis√© (si plusieurs mnt sont disponibles, il faut indiquer lequel utiliser)
 
-Exemple de rÈponse WPS
+Exemple de r√©ponse WPS
 ```<?xml version="1.0" encoding="utf-8"?>
 <wps:ExecuteResponse xmlns:wps="http://www.opengis.net/wps/1.0.0" xmlns:ows="http://www.opengis.net/ows/1.1" 
 xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
@@ -45,6 +45,11 @@ statusLocation="http://geobretagne.fr/wps/outputs/pywps-143705296593.xml">
         </wps:Output>
     </wps:ProcessOutputs>
 </wps:ExecuteResponse>```
+
+TODO
+====
+Le traitement fonctionne pour le moment avec des mnt projet√©s dans un syst√®me m√©trique (EPSG:2154)
+Il ne fonctionne pas avec des mnt en (EPSG:4326)
 
 
 
