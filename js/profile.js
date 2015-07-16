@@ -1,4 +1,4 @@
-﻿Ext.namespace("GEOR.Addons");
+Ext.namespace("GEOR.Addons");
 
 GEOR.Addons.profile = function (map, options) {
     this.map = map;    
@@ -133,12 +133,12 @@ GEOR.Addons.profile.prototype = (function () {
             }
             _parameters = {
                 pas: {
-                    value: 100,
+                    value: parseInt(distanceAV.reverse()[0].toString()),
                     title: distance.title,
                     allowedValues: distanceAV
                 },
                 referentiel: {
-                    value: "bdalti",
+                    value: referentielAV[0].toString(),
                     title: referentiel.title,
                     allowedValues: referentielAV
                 }

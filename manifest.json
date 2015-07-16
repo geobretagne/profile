@@ -18,7 +18,7 @@
     ],
     "default_options": {         
         "wpsurl": "http://geobretagne.fr/wps/mnt",        
-        "identifier": "getProfileProcess3",
+        "identifier": "getProfileProcess",
         "rangeselector": "false",
         "colors": [
             "FF0000",
