@@ -1,14 +1,14 @@
 {
     "js": [
-        "../../../lib/externals/openlayers/lib/OpenLayers/Format/OWSCommon/v1_1_0.js",
-        "../../../lib/externals/openlayers/lib/OpenLayers/Format/WFST/v1_1_0.js",
-        "../../../lib/externals/openlayers/lib/OpenLayers/Format/WPSDescribeProcess.js",
-        "../../../lib/externals/openlayers/lib/OpenLayers/Format/WCSGetCoverage.js",
+        "js/lib/openlayers/Format/OWSCommon/v1_1_0.js",
+        "js/lib/openlayers/Format/WFST/v1_1_0.js",
+        "js/lib/openlayers/Format/WPSDescribeProcess.js",
+        "js/lib/openlayers/Format/WCSGetCoverage.js",
         "js/WPSAxacute.js",
-        "../../../lib/externals/openlayers/lib/OpenLayers/Icon.js",
-        "../../../lib/externals/openlayers/lib/OpenLayers/Marker.js",
-        "../../../lib/externals/openlayers/lib/OpenLayers/Layer/Markers.js",        
-        "../../../lib/externals/ext/examples/ux/fileuploadfield/FileUploadField.js",
+        "js/lib/openlayers/Icon.js",
+        "js/lib/openlayers/Marker.js",
+        "js/lib/openlayers/Layer/Markers.js",        
+        "js/lib/ext/ux/fileuploadfield/FileUploadField.js",
         "js/dygraph-combined.js",
         "js/profilechart.js",
         "js/profile.js"
