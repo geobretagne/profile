@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import os, sys, math ,StringIO, tempfile, time
+import os, sys, math ,StringIO, tempfile, time, json, logging
 from pywps.Process import WPSProcess
 from osgeo import ogr, gdal, osr
 from osgeo.gdalconst import *
@@ -140,51 +140,78 @@ def distance(x0, x1, y0, y1):
 class Process(WPSProcess):
     """Main process class"""
     def __init__(self):
-        """Process initialization"""
-        # init process
-        self.MAXPOINTSRETURNED = 10000
-        self.SOURCEPROJECTION = 2154
+        """Process initialization"""        
+        #Read config file if exists and set process variables
+        CONFIG = {}
+        try:
+          with open(os.environ["PYWPS_PROCESSES"] + "/config.json") as json_data:
+            CONFIG = json.load(json_data)   
+            logging.info("Use config.json")             
+        except Exception as error: 
+          logging.info("no config.json - Use default configuration instead")  
+          logging.info(error)
+          
+        self.TITLE = CONFIG.get("title", None) or u"Profil en long"
+        self.ABSTRACT = CONFIG.get("abstract", None) or u"Generer un profil depuis une ligne passée en paramètre, limite de 1000 points"
+        self.GEOMTITLE = CONFIG.get("inputgeomtitle", None) or u"Géometrie au format GML"
+        self.OUTPUTTITLE = CONFIG.get("outputtitle", None) or u"Profil calculé"
+        self.MAXPOINTSRETURNED = CONFIG.get("maxpointsreturned", None) or 1000
+        self.SOURCEPROJECTION = CONFIG.get("sourceprojection", None) or 2154
+        self.REFERENTIELS = {"title": "", "values":[],"default":"", "paths": {}}
+        referentiels = CONFIG.get("referentiels", None) or {"title": u"Référentiel utilisé en entrée", "values": [{ "name": "srtm", "path": "/var/data/srtm93_03.tif", "default": "true"}]}
+        self.REFERENTIELS["title"] = referentiels.get("title", None)
+        self.PROJECTIONS = CONFIG.get("projections", None) or {"title": u"Projection - code EPSG utilisé", "values": [2154, 3948, 3857, 4326], "default": 2154}
+        self.DISTANCES = CONFIG.get("distances", None) or {"title": u"Distance, pas utilisé","values": [0, 1, 5, 25, 100, 200],"default": 100}
+        self.FORMATS = CONFIG.get("formats", None) or {"title": u"Format généré en sortie", "values": ["text", "json"], "default": "text"}   
+               
+              
+        for index, item in enumerate(referentiels["values"]):
+          self.REFERENTIELS["paths"][item["name"]] = item["path"]
+          self.REFERENTIELS["values"].append(item["name"])
+          if item["default"] == "true":
+            self.REFERENTIELS["default"] = item["name"]
+        logging.info(self.DISTANCES)
         #start_time = time.time()
         WPSProcess.__init__(self,
             identifier = "getProfileProcess",
-             title="Profil en long v2.1",
-             version = "2.1",
+             title = self.TITLE.encode('utf-8'),
+             version = "3.0",
              storeSupported = "true",
              statusSupported = "true",
-             abstract="Generer un profil depuis une ligne passee en parametre, limite de " + str(self.MAXPOINTSRETURNED) + " points")
+             abstract = self.ABSTRACT.encode('utf-8'))
         
         self.data = self.addComplexInput(identifier="data",
-                    title="geometrie au format GML",
+                    title=self.GEOMTITLE.encode('utf-8'),
                     formats = [{'mimeType':'text/xml'}])
 
         
        
         self.distance = self.addLiteralInput(identifier="distance",
-                    title="Distance, pas utilise",
+                    title = self.DISTANCES["title"].encode('utf-8'),
                     type = type(0),
-                    default = 100,
-                    allowedValues =[0,1,5,25,100,200])
+                    default = self.DISTANCES["default"],
+                    allowedValues = self.DISTANCES["values"])
 
         self.outputformat = self.addLiteralInput(identifier="outputformat",
-                    title="Format en sortie",
+                    title = self.FORMATS["title"].encode('utf-8'),
                     type = type('string'),                    
-                    default = 'text',
-                    allowedValues =['json','text'])
+                    default = self.FORMATS["default"].encode('utf-8'),
+                    allowedValues = self.FORMATS["values"])
 
         self.referentiel = self.addLiteralInput(identifier="referentiel",
-                    title="Referentiel utilise en entree",
+                    title = self.REFERENTIELS["title"].encode('utf-8'),
                     type = type('string'),                    
-                    default = 'srtm 90',
-                    allowedValues =['srtm 90'])
+                    default = self.REFERENTIELS["default"],
+                    allowedValues = self.REFERENTIELS["values"])
 
         self.projection = self.addLiteralInput(identifier="projection",
-                    title="Projection",
+                    title = self.PROJECTIONS["title"].encode('utf-8'),
                     type = type(0),                    
-                    default = 3857,
-                    allowedValues =[2154,3948,3857,4326])
+                    default = self.PROJECTIONS["default"],
+                    allowedValues = self.PROJECTIONS["values"])
         
 
-        self.result = self.addLiteralOutput(identifier="result",title="Profil calcule",type = type('string'))        
+        self.result = self.addLiteralOutput(identifier="result",title= self.OUTPUTTITLE.encode('utf-8'),type = type('string'))        
     
     
     def execute(self):      
@@ -228,8 +255,9 @@ class Process(WPSProcess):
         # open the image
         self.status.set("Opening MNT",30)
         
-        if Referentiel == 'srtm 90':
-          img = gdal.Open('/var/data/srtm93_03.tif', GA_ReadOnly)        
+        #if Referentiel == 'srtm 90':
+        #  img = gdal.Open('/var/data/srtm93_03.tif', GA_ReadOnly) 
+        img = gdal.Open(self.REFERENTIELS["paths"][Referentiel], GA_ReadOnly)      
         
         if img is None:
           return Exception('Could not open %s' % (Referentiel))

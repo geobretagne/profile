@@ -1,0 +1,31 @@
+{
+    "title": "Profil en long GeoBretagne",
+    "abstract" : "Generer un profil depuis une ligne passee en paramètre, limite de 1000 points",
+    "inputgeomtitle" : "Geometrie au format GML",
+    "outputtitle" : "Profil calcule",
+    "maxpointsreturned": 1000,
+    "sourceprojection": 2154,
+    "projections": {
+        "title": "Projection - code EPSG utilise",
+        "values": [2154, 3948, 3857, 4326],
+        "default": 2154
+    },
+    "distances": {
+        "title": "Distance, pas utilise",
+        "values": [0, 1, 5, 25, 100, 200],
+        "default": 100
+    },
+    "formats": {
+        "title": "Format genere en sortie",
+        "values": ["text", "json"],
+        "default": "text"
+    },
+    "referentiels": {
+        "title": "Referentiel utilise en entree",
+        "values": [{
+            "name": "srtm",
+            "path": "/var/data/srtm93_03.tif",
+            "default": "true"
+        }]
+    }
+}
