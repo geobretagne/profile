@@ -1,83 +1,27 @@
 Ext.namespace("GEOR.Addons");
 
-GEOR.Addons.profile = function (map, options) {
-    this.map = map;    
-    this.options = options;    
-    this.item = null;    
-    this.wins = [];
-    this.configForm = null;    
-    
-};
+GEOR.Addons.profile = Ext.extend(GEOR.Addons.Base, {    
+    control: null,
+    item: null,
+    wins: [],
+    _configForm: null,
+    _initialized: false,
+    _parameters: null,
+    _process: null,    
+    _wps_url: null,
+    _wps_identifier: null,    
+    _itemToolDraw: null,
+    _itemToolSelect: null,
+    _itemToolUpload: null,
+    _itemToolParameters: null,
+    _colors: null,
+    _drawLayer: null,
+    _markersLayer: null,
+    _resultLayer: null,    
 
-GEOR.Addons.profile.prototype = (function () {
-
-    /*
-     * Private
-     */
-    /**
-     * Property: _mask_loaders
-     * Array of {Ext.LoadMask} .
-     */
-    
-    var _self = null;    
-    var _initialized = false;
-    var _parameters = null;
-    var _process = null;
-    /**
-     * Property: _map
-     * {OpenLayers.Map} The map instance.
-     */
-    var _map = null;	
-    
-
-    /**
-     * Property: url
-     * String The WPS MNT instance.
-     */
-    var _wps_url = null;
-
-    var _wps_identifier = null;
-    
-    var _itemToolDraw = null;    
-    
-    var _itemToolSelect = null;
-    
-    var _itemToolUpload = null;
-    
-    var _itemToolParameters = null;
-
-    /**
-     * Property: config
-     *{Object} Hash of options, with keys: pas, referentiel.
-     */
-
-    var _config = null;
-
-    /**
-     * Property: colors
-     *[Array] Hash of colors.
-     */
-    var _colors = null;
-
-    /**
-     * Property: _drawLayer
-     * {OpenLayers.Layer.Vector}.
-     */
-
-    var _drawLayer = null;
-
-    /**
-     * Property: _markersLayer
-     * {OpenLayers.Layer.Markers}.
-     */
-    var _markersLayer = null;
-
-    var _resultLayer = null;  
-    
-
-    var tr = function (str) {
-            return OpenLayers.i18n(str);
-        };
+    tr: function (str) {
+         return OpenLayers.i18n(str);
+    },
 
     /**
      * Method: describeProcess
@@ -85,7 +29,7 @@ GEOR.Addons.profile.prototype = (function () {
      * Parameters:
      * String url, String WPS identifier.
      */        
-    var describeProcess = function (url, identifier) {
+    describeProcess: function (url, identifier) {
         OpenLayers.Request.GET({
             url: url,
             params: {
@@ -96,12 +40,13 @@ GEOR.Addons.profile.prototype = (function () {
             },
             success: function(response) {
                 process = new OpenLayers.Format.WPSDescribeProcess().read(response.responseText).processDescriptions[identifier];
-                onDescribeProcess(process);
-            }
+                this.onDescribeProcess(process);
+            },
+            scope: this
         });
-    };
+    },
     
-    var _findDataInputsByIdentifier = function (datainputs, identifier) {
+    _findDataInputsByIdentifier:  function (datainputs, identifier) {
         var datainput = null;
         for (var i = 0; i < datainputs.length; i++) {
                 if (datainputs[i].identifier === identifier) {
@@ -110,7 +55,7 @@ GEOR.Addons.profile.prototype = (function () {
                 }
             }
         return datainput;
-    };
+    },
     /**
      * Method: onDescribeProcess
      * Callback executed when the describeProcess response
@@ -119,19 +64,19 @@ GEOR.Addons.profile.prototype = (function () {
      * Parameters:
      * process - {described process}.
      */
-    var onDescribeProcess = function (process) {
-            _process = process;
-            var referentiel = _findDataInputsByIdentifier(process.dataInputs,"referentiel");            
+    onDescribeProcess: function (process) {
+            this._process = process;
+            var referentiel = this._findDataInputsByIdentifier(process.dataInputs,"referentiel");            
             var referentielAV = [];
             for (var obj in referentiel.literalData.allowedValues) {
                 referentielAV.push([obj]);
             }
-            var distance = _findDataInputsByIdentifier(process.dataInputs,"distance");
+            var distance = this._findDataInputsByIdentifier(process.dataInputs,"distance");
             var distanceAV = [];
             for (var obj in distance.literalData.allowedValues) {
                 distanceAV.push([obj]);
             }
-            _parameters = {
+            this._parameters = {
                 pas: {
                     value: parseInt(distanceAV.reverse()[0].toString()),
                     title: distance.title,
@@ -143,37 +88,37 @@ GEOR.Addons.profile.prototype = (function () {
                     allowedValues: referentielAV
                 }
             };
-            _itemToolDraw.enable();
-            _itemToolParameters.enable();
-            _initialized = true;
-        };
+            this._itemToolDraw.enable();
+            this._itemToolParameters.enable();
+            this._initialized = true;
+    },
     /**
      * Method: createParametersForm
      * Return a Form with tool parameters
      *
      *
      */
-    var createParametersForm = function () {
+    createParametersForm: function () {
             var referentielStore = new Ext.data.SimpleStore({
                 fields: [{
                     name: "value",
                     mapping: 0
                 }],
-                data: _parameters.referentiel.allowedValues
+                data: this._parameters.referentiel.allowedValues
             });
             var pasStore = new Ext.data.SimpleStore({
                 fields: [{
                     name: "value",
                     mapping: 0
                 }],
-                data: _parameters.pas.allowedValues
+                data: this._parameters.pas.allowedValues
             });
             var referentielCombo = new Ext.form.ComboBox({
                 name: "referentiel",
-                fieldLabel: _parameters.referentiel.title,
+                fieldLabel: this._parameters.referentiel.title,
                 store: referentielStore,
                 valueField: "value",
-                value: _parameters.referentiel.value,
+                value: this._parameters.referentiel.value,
                 displayField: "value",
                 editable: false,
                 mode: "local",
@@ -182,17 +127,17 @@ GEOR.Addons.profile.prototype = (function () {
             });
             var pasCombo = new Ext.form.ComboBox({
                 name: "pas",
-                fieldLabel: _parameters.pas.title,
+                fieldLabel: this._parameters.pas.title,
                 store: pasStore,
                 valueField: "value",
-                value: _parameters.pas.value,
+                value: this._parameters.pas.value,
                 displayField: "value",
                 editable: false,
                 mode: "local",
                 triggerAction: "all",
                 listWidth: 167
             });
-            _configForm = new Ext.FormPanel({
+            this._configForm = new Ext.FormPanel({
                 labelWidth: 100,
                 layout: "form",
                 bodyStyle: "padding: 10px",                
@@ -203,42 +148,43 @@ GEOR.Addons.profile.prototype = (function () {
                 defaultType: "textfield",
                 items: [referentielCombo, pasCombo],                
                 buttons: [{
-                    text: tr("addonprofile.refresh"),
+                    text: this.tr("addonprofile.refresh"),
                     handler: function () {
-                        updateGlobalConfig();
-                    }
+                        this.updateGlobalConfig();
+                    },
+                    scope: this
                 }]
             });
-            return _configForm;
-        };
+            return this._configForm;
+   },
     
     /**
      * Method: getGraphicHandler
      * Retourne le nombre de profils créés dans le layer _drawLayer
      * La valeur retournée sert à définir la couleur du futur Graphique généré.
      */
-    var getGraphicHandler = function () {
-            return _drawLayer.features.length;
-        };
+    getGraphicHandler: function () {
+            return this._drawLayer.features.length;
+    },
     /**
      * Method: getColor
      * Retourne le code couleur à associer au profil
      *
      */
-    var getColor = function (nprofile) {
+    getColor: function (nprofile) {
             var color;
             switch (nprofile) {
             case 1:
             case 2:
             case 3:
-                color = _colors[nprofile - 1];
+                color = this._colors[nprofile - 1];
                 break;
             default:
                 color = "FF7F50";
                 break;
             }
             return color;
-        };
+    },
     /**
      * Method: onNewLine
      * Callback executed when a new Line is drawned
@@ -246,10 +192,10 @@ GEOR.Addons.profile.prototype = (function () {
      * Parameters:
      * e - {OpenLayers.Layer.events}
      */
-    var onNewLine = function (e) {
+    onNewLine: function (e) {
             var feature = e.feature;            
-            var graphicHandler = getGraphicHandler();
-            var profileColor = getColor(graphicHandler);
+            var graphicHandler = this.getGraphicHandler();
+            var profileColor = this.getColor(graphicHandler);
             feature.style = {
                 pointRadius: 10,
                 fillColor: "green",
@@ -260,32 +206,32 @@ GEOR.Addons.profile.prototype = (function () {
                 profile: graphicHandler,
                 color: profileColor
             };
-            _drawLayer.setZIndex(600);
-            _drawLayer.redraw();            
-            var layers = [_drawLayer,_markersLayer, _resultLayer];
-            var chartWindow = new GEOR.Addons.profilechart(_map,layers, _config, profileColor, feature, graphicHandler, _process);                
-            chartWindow.events.on("wpssuccess", _onCharWindowResponse);
-            chartWindow.events.on("wpserror", _onCharWindowError);
-            chartWindow.events.on("wpsclose", _onCharWindowClose);
-            chartWindow.getProfile("new", _parameters);            
-        };
+            this._drawLayer.setZIndex(600);
+            this._drawLayer.redraw();            
+            var layers = [this._drawLayer, this._markersLayer, this._resultLayer];
+            var chartWindow = new GEOR.Addons.profilechart(this.map,layers, this.options, profileColor, feature, graphicHandler, this._process);                
+            chartWindow.events.on("wpssuccess", this._onCharWindowResponse, this);
+            chartWindow.events.on("wpserror", this._onCharWindowError, this);
+            chartWindow.events.on("wpsclose", this._onCharWindowClose, this);
+            chartWindow.getProfile("new", this._parameters);            
+    },
    
-    var _onCharWindowResponse = function (chartWindow) {
+    _onCharWindowResponse: function (chartWindow) {
         chartWindow.chart().show();
-        _self.wins.push(chartWindow);
-    };
+        this.wins.push(chartWindow);
+    },
     
-    var _onCharWindowClose = function (chartWindow) {        
-        _self.wins.remove(chartWindow);
-    };
+    _onCharWindowClose: function (chartWindow) {        
+        this.wins.remove(chartWindow);
+    },
     
-    var _onCharWindowError = function (textError,chartWindow) {
+    _onCharWindowError: function (textError,chartWindow) {
         GEOR.util.errorDialog({
-                title: tr("addonprofile.error"),
+                title: this.tr("addonprofile.error"),
                 msg: textError
             });
         chartWindow.destroy();
-    };  
+    },
    
     /**
      * Method: LoadGML
@@ -294,28 +240,28 @@ GEOR.Addons.profile.prototype = (function () {
      * Parameters:
      * gmlText - String GML.
      */
-    var LoadGML = function (gmlText) {
+    LoadGML: function (gmlText) {
             var features = new OpenLayers.Format.GML().read(gmlText);
             if (features.length <= 3) {
-                _drawLayer.addFeatures(features);
+                this._drawLayer.addFeatures(features);
             } else {
                 GEOR.util.errorDialog({
-                    title: tr("addonprofile.error"),
-                    msg: tr("addonprofile.error1") + " : " + features.length
+                    title: this.tr("addonprofile.error"),
+                    msg: this.tr("addonprofile.error1") + " : " + features.length
                 });
             }
-        };    
+     }, 
    
     /**
      * Method: updateupdateGlobalConfig
      * Modifie les valeurs Référentiel et pas
      *
      */
-    var updateGlobalConfig = function () {
-            _parameters.pas.value = _configForm.getForm().findField("pas").getValue();
-            _parameters.referentiel.value = _configForm.getForm().findField("referentiel").getValue();
-            _configForm.findParentByType('window').destroy();
-    };
+    updateGlobalConfig: function () {
+            this._parameters.pas.value = this._configForm.getForm().findField("pas").getValue();
+            this._parameters.referentiel.value = this._configForm.getForm().findField("referentiel").getValue();
+            this._configForm.findParentByType('window').destroy();
+    },
     
     /**
      * Method: createWPSControl
@@ -324,14 +270,15 @@ GEOR.Addons.profile.prototype = (function () {
      * handlerType - {OpenLayers.Handler.Path}, map - {OpenLayers.Map} The map instance.
      */
 
-    var createWPSControl = function (handlerType) {
-            var drawLineCtrl = new OpenLayers.Control.DrawFeature(_drawLayer, handlerType, {
+    createWPSControl: function (handlerType) {
+            var drawLineCtrl = new OpenLayers.Control.DrawFeature(this._drawLayer, handlerType, {
                 featureAdded: function (e) {
                     drawLineCtrl.deactivate();
-                }
+                },
+                scope: this
             });
             return drawLineCtrl;
-        };
+    },
     /**
      * Method: enableSelectionTool
      *
@@ -339,9 +286,9 @@ GEOR.Addons.profile.prototype = (function () {
      * Parameters:
      * m - {OpenLayers.Map} The map instance.
      */
-    var enableSelectionTool = function () {
+    enableSelectionTool: function () {
             var response = false;
-            var vectors = _map.getLayersByClass('OpenLayers.Layer.Vector');
+            var vectors = this.map.getLayersByClass('OpenLayers.Layer.Vector');
             for (var i = 0; i < vectors.length; i++) { 
                 if (vectors[i].selectedFeatures.length > 0) {                
                     response = true;
@@ -349,18 +296,18 @@ GEOR.Addons.profile.prototype = (function () {
                 }
             }
             return response;
-        };
+    },
     /**
      * Method: getProfileParameters
      *
      * Retourne les valeurs des paramètres de l"outil
      *
      */
-    var getProfileParameters = function () {
-            var form = createParametersForm();
+    getProfileParameters: function () {
+            var form = this.createParametersForm();
             var win = new Ext.Window({
                 closable: true,                
-                title: tr("addonprofile.parameterstool"),
+                title: this.tr("addonprofile.parameterstool"),
                 border: false,
                 plain: true,
                 region: "center",
@@ -368,16 +315,16 @@ GEOR.Addons.profile.prototype = (function () {
             });
             win.render(Ext.getBody());
             win.show();
-        };
+    },
     /**
      * Method: getMapFeaturesSelection
      * Créé un profil pour chaque feature sélectionnée dans le Panel Results
      * Parameters:
      * map - {OpenLayers.Map} The map instance.
      */
-    var getMapFeaturesSelection = function () {
+    getMapFeaturesSelection: function () {
             var features = [];
-            var vectors = _map.getLayersByClass('OpenLayers.Layer.Vector');
+            var vectors = this.map.getLayersByClass('OpenLayers.Layer.Vector');
             for (var i = 0; i < vectors.length; i++) { 
                 if (vectors[i].selectedFeatures.length > 0) {                
                     features = vectors[i].selectedFeatures;
@@ -388,30 +335,30 @@ GEOR.Addons.profile.prototype = (function () {
                 for (var i = 0; i < features.length; i++) {
                     if (features[i].geometry.CLASS_NAME == "OpenLayers.Geometry.MultiLineString" || features[i].geometry.CLASS_NAME == "OpenLayers.Geometry.MultiLineString") {
                         var feat = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.LineString(features[i].geometry.getVertices()));
-                        _drawLayer.addFeatures([feat]);
+                        this._drawLayer.addFeatures([feat]);
                         // Possibilité de faire un merge des features
                         // pour le moment chaque feature sélectionné génère un profil
                     } else {
                         GEOR.util.errorDialog({
-                            title: tr("addonprofile.error"),
-                            msg: tr("addonprofile.error2")
+                            title: this.tr("addonprofile.error"),
+                            msg: this.tr("addonprofile.error2")
                         });
                     }
                 }
             } else {
                 GEOR.util.errorDialog({
-                    title: tr("addonprofile.error"),
-                    msg: tr("addonprofile.error2")
+                    title: this.tr("addonprofile.error"),
+                    msg: this.tr("addonprofile.error2")
                 });
             }
-        };
+    },
 
     /**
      * Method: selectGMLFile
      * Sélectionne un fichier GML en local
      *
      */
-    var selectGMLFile = function () {
+    selectGMLFile: function () {
             // Check for the various File API support.
             if (window.File && window.FileReader && window.FileList) {                
                 var fileWindow;
@@ -425,23 +372,24 @@ GEOR.Addons.profile.prototype = (function () {
                     },
                     items: [{
                         xtype: "fileuploadfield",
-                        emptyText: tr("addonprofile.fileselection"),
-                        fieldLabel: tr("addonprofile.file"),
+                        emptyText: this.tr("addonprofile.fileselection"),
+                        fieldLabel: this.tr("addonprofile.file"),
                         buttonText: "...",
                         listeners: {
                             "fileselected": function (fb, v) {
                                 file = fb.fileInput.dom.files[0]
                                 myfilename = v;
                                 var reader = new FileReader();
+                                reader.scope = this.scope;
                                 reader.onload = function (e) {
                                     var text = e.target.result;
                                     if (myfilename.search(".gml") != -1) {
-                                        LoadGML(text);
+                                        this.scope.LoadGML(text);
                                         fileWindow.hide();
                                     } else {
                                         GEOR.util.errorDialog({
-                                            title: tr("addonprofile.error"),
-                                            msg: tr("addonprofile.error4")
+                                            title: this.scope.tr("addonprofile.error"),
+                                            msg: this.scope.tr("addonprofile.error4")
                                         });
                                     }
 
@@ -449,14 +397,15 @@ GEOR.Addons.profile.prototype = (function () {
                                 reader.readAsText(file, "UTF-8");
 
                             }
-                        }
+                        },
+                        scope: this
                     }]
                 });
 
                 fileWindow = new Ext.Window({
                     closable: true,
                     width: 320,
-                    title: tr("addonprofile.fileselection"),
+                    title: this.tr("addonprofile.fileselection"),
                     border: false,
                     plain: true,
                     region: "center",
@@ -467,96 +416,84 @@ GEOR.Addons.profile.prototype = (function () {
             } else {
                 alert("The File APIs are not fully supported in this browser.");
             }
-        };
+        },
         //test
-        var _onResultPanelEvent = function (e) {
+        _onResultPanelEvent: function (e) {
             alert(e.store.data.items[0].data.feature.id);            
-        };
-   
-
-    return {
-        /*
-         * Public
-         */
-
-        /**
-         * APIMethod: create
-         * Return a  {Ext.menu.Item} for GEOR_addonsmenu.js and initialize this module.16:21 13/06/2012
-         *
-         * Parameters:
-         * m - {OpenLayers.Map} The map instance, {wpsconfig} the wps tool options.
-         */
-        init: function (record) {
-            _self = this;
+        },
+        
+        
+        init: function (record) {            
             var lang = OpenLayers.Lang.getCode()
             var title = record.get("title")[lang];
-            var description = record.get("description")[lang];
-            _map = this.map;
-            _config = _self.options;           
+            var description = record.get("description")[lang];                      
             // LAYERS
-            _drawLayer = new OpenLayers.Layer.Vector("Profil", {
+            this._drawLayer = new OpenLayers.Layer.Vector("Profil", {
                 displayInLayerSwitcher: false
             });
-            _drawLayer.setZIndex(600);
-            _resultLayer = new OpenLayers.Layer.Vector("Result", {
+            this._drawLayer.setZIndex(600);
+            this._resultLayer = new OpenLayers.Layer.Vector("Result", {
                 displayInLayerSwitcher: false
             });
-            _resultLayer.setZIndex(601);            
-            _markersLayer = new OpenLayers.Layer.Markers("WpsMarker", {
+            this._resultLayer.setZIndex(601);            
+            this._markersLayer = new OpenLayers.Layer.Markers("WpsMarker", {
                 displayInLayerSwitcher: false
             });
-            _markersLayer.setZIndex(602);
+            this._markersLayer.setZIndex(602);
                      
             // EVENT LAYER
-            _drawLayer.events.register("featureadded", "", onNewLine);
+            this._drawLayer.events.register("featureadded", this, this.onNewLine);
             
-            _map.addLayers([_drawLayer, _resultLayer,_markersLayer]);
-            _colors = _config.colors;
-            _wps_url = _config.wpsurl;
-            _wps_identifier = _config.identifier;             
+            this.map.addLayers([this._drawLayer, this._resultLayer, this._markersLayer]);
+            this._colors = this.options.colors;
+            this._wps_url = this.options.wpsurl;
+            this._wps_identifier = this.options.identifier;             
             
-            _itemToolDraw = new Ext.menu.CheckItem(new GeoExt.Action({                        
+            this._itemToolDraw = new Ext.menu.CheckItem(new GeoExt.Action({                        
                 iconCls: "drawline",
-                text: tr("addonprofile.drawprofile"),
+                text: this.tr("addonprofile.drawprofile"),
                 map: this.map,
                 toggleGroup: "map",
                 allowDepress: false,
                 disabled: true,
-                tooltip: tr("addonprofile.drawprofiletip"),
-                control: createWPSControl(OpenLayers.Handler.Path)
+                tooltip: this.tr("addonprofile.drawprofiletip"),
+                control: this.createWPSControl(OpenLayers.Handler.Path)
             }));
                     
-            _itemToolSelect = new Ext.Action({                        
+            this._itemToolSelect = new Ext.Action({                        
                 iconCls: "geor-btn-metadata",
-                text: tr("addonprofile.selecttoprofile"),
+                text: this.tr("addonprofile.selecttoprofile"),
                 allowDepress: false,
-                tooltip: tr("addonprofile.selecttoprofiletip"),
+                tooltip: this.tr("addonprofile.selecttoprofiletip"),
                 disabled: true,
                 handler: function () {
-                    getMapFeaturesSelection();
-                }
+                    this.getMapFeaturesSelection();
+                },
+                scope: this
             });
                     
-            _itemToolUpload = new Ext.Action({
+            this._itemToolUpload = new Ext.Action({
                 iconCls: "wps-uploadfile",                        
-                text: tr("addonprofile.loadgml"),
+                text: this.tr("addonprofile.loadgml"),
                 allowDepress: false,
-                tooltip: tr("addonprofile.loadgmltip"),
+                tooltip: this.tr("addonprofile.loadgmltip"),
                 disabled: (window.File && window.FileReader && window.FileList) ? false : true,
                 handler: function () {
-                    selectGMLFile();
-                }
+                    this.selectGMLFile();
+                },
+                scope: this
             });
             
-            _itemToolParameters = new Ext.Action({                        
+            this._itemToolParameters = new Ext.Action({                        
                 iconCls: "geor-btn-query",
-                text: tr("addonprofile.parameters"),
+                text: this.tr("addonprofile.parameters"),
                 allowDepress: false,
                 disabled: true,
-                tooltip: tr("addonprofile.parameterstip"),
+                tooltip: this.tr("addonprofile.parameterstip"),
                 handler: function () {
-                    getProfileParameters();
-                }
+                    this.getProfileParameters();
+                },
+                scope: this
             });
 
             var menuitems = new Ext.menu.Item({
@@ -574,28 +511,29 @@ GEOR.Addons.profile.prototype = (function () {
                 menu: new Ext.menu.Menu({
                     listeners: {
                         beforeshow: function () {
-                            (enableSelectionTool() == true) ? _itemToolSelect.enable() : _itemToolSelect.disable();                            
+                            (this.scope.enableSelectionTool() == true) ? this.scope._itemToolSelect.enable() : this.scope._itemToolSelect.disable();                            
                         }						
                     },
-                    items: [ _itemToolDraw, _itemToolSelect, _itemToolUpload, _itemToolParameters]
+                    scope: this,
+                    items: [ this._itemToolDraw, this._itemToolSelect, this._itemToolUpload, this._itemToolParameters]
 
                 })
             });
             
-            describeProcess(_wps_url, _wps_identifier);
+            this.describeProcess(this._wps_url, this._wps_identifier);
             //GEOR.resultspanel.events.on("panel", _onResultPanelEvent);
             this.item = menuitems;
             return menuitems;
-        },        
-        destroy: function () {
-            this.map = null;
-            this.options = null;
-            this.configForm = null;
+        }, 
+        
+        destroy: function () {            ;
+            this._configForm = null;
             this.item = null;            
             Ext.each(this.wins, function(w, i) {w.destroy();});
-            _drawLayer.destroy();
-            _markersLayer.destroy();
-            _resultLayer.destroy();
+            this._drawLayer.destroy();
+            this._markersLayer.destroy();
+            this._resultLayer.destroy();
+            GEOR.Addons.Base.prototype.destroy.call(this);
         }
-    }
-})();
+    
+});
