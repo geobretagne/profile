@@ -1,0 +1,25 @@
+[{
+            "id": "profile_0",
+            "name": "profile",
+            "enabled": "true",
+            "title": {
+                "en": "stream profile",
+                "es": "Camino largo",
+                "fr": "Calcul profil en long"
+            },
+            "preloaded": "true",
+            "rangeselector": "true",
+            "thumbnail": "img/thumbnail.png",
+            "description": {
+                "en": "Obtain longitudinal profiles with different MNT",
+                "es": "Obtener perfiles longitudinales con diferentes modelos digitales del terreno",
+                "fr": "Obtenir des profils en long selon différents modèles numériques de terrain"
+            },
+            "options": {
+                "colors": [
+                    "FF0000",
+                    "556B2F",
+                    "6495ED"
+                ]
+            }
+        }]
