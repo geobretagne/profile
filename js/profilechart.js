@@ -268,7 +268,7 @@ GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, p
             };*/
         beginPoint.style = {
             pointRadius: 7,
-            externalGraphic: GEOR.config.PATHNAME + "/app/addons/profile/img/icon-one.png",
+            externalGraphic: GEOR.config.PATHNAME + "/ws/addons/profile/img/icon-one.png",
             graphicZIndex: 701
         };
         var endPoint = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.Point(infos.lastpointX, infos.lastpointY));
@@ -277,7 +277,7 @@ GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, p
             };*/
         endPoint.style = {
             pointRadius: 7,
-            externalGraphic: GEOR.config.PATHNAME + "/app/addons/profile/img/icon-two.png",
+            externalGraphic: GEOR.config.PATHNAME + "/ws/addons/profile/img/icon-two.png",
             graphicZIndex: 701
         };
         _self.marks = [beginPoint, endPoint];
@@ -582,7 +582,7 @@ GEOR.Addons.profilechart = function (map, layers, options, color, feature, id, p
                                 var ptResult = new OpenLayers.LonLat(pt[1], pt[2]);
                                 var size = new OpenLayers.Size(20, 34);
                                 var offset = new OpenLayers.Pixel(-(size.w / 2), -size.h);
-                                var icon = new OpenLayers.Icon(GEOR.config.PATHNAME + "/app/addons/profile/img/googlemarker.png", size, offset);
+                                var icon = new OpenLayers.Icon(GEOR.config.PATHNAME + "/ws/addons/profile/img/googlemarker.png", size, offset);
                                 _markersLayer.addMarker(new OpenLayers.Marker(ptResult, icon));
                             },
                             unhighlightCallback: function(e) {
