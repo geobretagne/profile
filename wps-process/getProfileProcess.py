@@ -1,16 +1,23 @@
-# -*- coding: utf-8 -*-
-import os, sys, math ,StringIO, tempfile, time, json, logging
-from pywps.Process import WPSProcess
-from osgeo import ogr, gdal, osr
+﻿
+from pywps import Process, LiteralInput, ComplexInput, LiteralOutput, Format, FORMATS
+
+
+from pywps.validator.mode import MODE
+
+import logging, json, time, math
+
 from osgeo.gdalconst import *
+from osgeo import ogr, gdal, osr
+
+__author__ = 'spelhate'
 
 
 def densify(geometry,opt,threshold):
-      
+
   gtype = geometry.GetGeometryType()
   if  not (gtype == ogr.wkbLineString or gtype == ogr.wkbMultiLineString):
       raise Exception("The densify function only works on linestring or multilinestring geometries")
-      
+
   g = ogr.Geometry(ogr.wkbLineString)
 
   # add the first point
@@ -45,7 +52,7 @@ def densify(geometry,opt,threshold):
                   x = x + dx
                   y = y + dy
                   g.AddPoint(x, y)
-                  
+
           elif opt == "END":
               segcount = int(math.floor(d/threshold))
               xa = None
@@ -62,10 +69,10 @@ def densify(geometry,opt,threshold):
                   xa = xn
                   ya = yn
                   g.AddPoint(xa,ya)
-                  
+
           elif opt == "BEGIN":
-              
-              # I think this might put an extra point in at the end of the 
+
+              # I think this might put an extra point in at the end of the
               # first segment
               segcount = int(math.floor(d/threshold))
               xa = None
@@ -91,24 +98,24 @@ def densify(geometry,opt,threshold):
       x0 = x1
       y0 = y1
 
-          
+
   return g
 
 def calcpoint(x0, x1, y0, y1, d):
         a = x1 - x0
         b = y1 - y0
-        
+
         if a == 0:
             xn = x1
-            
+
             if b > 0:
                 yn = y0 + d
             else:
                 yn = y0 - d
             return (xn, yn)
-                      
+
         theta = degrees(math.atan(abs(b)/abs(a)))
-        
+
         if a > 0 and b > 0:
             omega = theta
         if a < 0 and b > 0:
@@ -127,30 +134,32 @@ def calcpoint(x0, x1, y0, y1, d):
         else:
             xn = x0 + d*math.cos(radians(omega))
             yn = y0 + d*math.sin(radians(omega))
-        
+
         return (xn, yn)
-                    
+
 def distance(x0, x1, y0, y1):
     deltax = x0 - x1
     deltay = y0 - y1
     d2 = (deltax)**2 + (deltay)**2
     d = math.sqrt(d2)
     return d
-    
-class Process(WPSProcess):
-    """Main process class"""
+
+
+class Profile(Process):
     def __init__(self):
-        """Process initialization"""        
+
+        """Process initialization"""
+        logging.basicConfig(filename='profile.log',level=logging.DEBUG)
         #Read config file if exists and set process variables
         CONFIG = {}
         try:
-          with open(os.environ["PYWPS_PROCESSES"] + "/config.json") as json_data:
-            CONFIG = json.load(json_data)   
-            logging.info("Use config.json")             
-        except Exception as error: 
-          logging.info("no config.json - Use default configuration instead")  
+          with open("config.json") as json_data:
+            CONFIG = json.load(json_data)
+            logging.info("Use config.json")
+        except Exception as error:
+          logging.info("no config.json - Use default configuration instead")
           logging.info(error)
-          
+
         self.TITLE = CONFIG.get("title", None) or u"Profil en long"
         self.ABSTRACT = CONFIG.get("abstract", None) or u"Generer un profil depuis une ligne passée en paramètre, limite de 1000 points"
         self.GEOMTITLE = CONFIG.get("inputgeomtitle", None) or u"Géometrie au format GML"
@@ -162,103 +171,119 @@ class Process(WPSProcess):
         self.REFERENTIELS["title"] = referentiels.get("title", None)
         self.PROJECTIONS = CONFIG.get("projections", None) or {"title": u"Projection - code EPSG utilisé", "values": [2154, 3948, 3857, 4326], "default": 2154}
         self.DISTANCES = CONFIG.get("distances", None) or {"title": u"Distance, pas utilisé","values": [0, 1, 5, 25, 100, 200],"default": 100}
-        self.FORMATS = CONFIG.get("formats", None) or {"title": u"Format généré en sortie", "values": ["text", "json"], "default": "text"}   
-               
-              
+        self.FILE_FORMATS = CONFIG.get("formats", None) or {"title": u"Format généré en sortie", "values": ["text", "json"], "default": "text"}
+
+        logging.info(self.FILE_FORMATS["title"])
+
         for index, item in enumerate(referentiels["values"]):
           self.REFERENTIELS["paths"][item["name"]] = item["path"]
           self.REFERENTIELS["values"].append(item["name"])
           if item["default"] == "true":
             self.REFERENTIELS["default"] = item["name"]
-        logging.info(self.DISTANCES)
-        #start_time = time.time()
-        WPSProcess.__init__(self,
-            identifier = "getProfileProcess",
-             title = self.TITLE.encode('utf-8'),
-             version = "3.0",
-             storeSupported = "true",
-             statusSupported = "true",
-             abstract = self.ABSTRACT.encode('utf-8'))
-        
-        self.data = self.addComplexInput(identifier="data",
-                    title=self.GEOMTITLE.encode('utf-8'),
-                    formats = [{'mimeType':'text/xml'}])
+        logging.info(self.FILE_FORMATS)
 
-        
-       
-        self.distance = self.addLiteralInput(identifier="distance",
-                    title = self.DISTANCES["title"].encode('utf-8'),
-                    type = type(0),
-                    default = self.DISTANCES["default"],
-                    allowedValues = self.DISTANCES["values"])
+        a = ComplexInput('data',
+            title=self.GEOMTITLE.encode('utf-8'),
+            supported_formats=[Format('application/gml+xml'), Format('text/xml')],
+            data_format= Format('text/xml'),
+            mode=MODE.NONE
+        )
+        b = LiteralInput('distance',
+            title = self.DISTANCES["title"].encode('utf-8'),
+            data_type='integer',
+            default = self.DISTANCES["default"],
+            allowed_values = self.DISTANCES["values"]
+        )
+        c = LiteralInput('outputformat',
+            title = self.FILE_FORMATS["title"].encode('utf-8'),
+            data_type='string',
+            default = self.FILE_FORMATS["default"].encode('utf-8'),
+            allowed_values = self.FILE_FORMATS["values"],
+            mode=MODE.NONE
+         )
+        d = LiteralInput('referentiel',
+            title = self.REFERENTIELS["title"].encode('utf-8'),
+            data_type='string',
+            default = self.REFERENTIELS["default"],
+            allowed_values = self.REFERENTIELS["values"]
+        )
+        e = LiteralInput('projection',
+            title = self.PROJECTIONS["title"].encode('utf-8'),
+            data_type='integer',
+            default = self.PROJECTIONS["default"],
+            allowed_values = self.PROJECTIONS["values"]
+        )
 
-        self.outputformat = self.addLiteralInput(identifier="outputformat",
-                    title = self.FORMATS["title"].encode('utf-8'),
-                    type = type('string'),                    
-                    default = self.FORMATS["default"].encode('utf-8'),
-                    allowedValues = self.FORMATS["values"])
 
-        self.referentiel = self.addLiteralInput(identifier="referentiel",
-                    title = self.REFERENTIELS["title"].encode('utf-8'),
-                    type = type('string'),                    
-                    default = self.REFERENTIELS["default"],
-                    allowedValues = self.REFERENTIELS["values"])
+        inputs = [a,b,c,d,e]
 
-        self.projection = self.addLiteralInput(identifier="projection",
-                    title = self.PROJECTIONS["title"].encode('utf-8'),
-                    type = type(0),                    
-                    default = self.PROJECTIONS["default"],
-                    allowedValues = self.PROJECTIONS["values"])
-        
+        outputs = [
+            LiteralOutput('result', title= self.OUTPUTTITLE.encode('utf-8'), data_type='string')
+        ]
 
-        self.result = self.addLiteralOutput(identifier="result",title= self.OUTPUTTITLE.encode('utf-8'),type = type('string'))        
-    
-    
-    def execute(self):      
-        
+
+
+
+        super(Profile, self).__init__(
+            self._handler,
+            identifier='getProfileProcess',
+            version='4.0',
+            title=self.TITLE.encode('utf-8'),
+            abstract=self.ABSTRACT.encode('utf-8'),
+            profile='',
+            inputs=inputs,
+            outputs=outputs,
+            store_supported=True,
+            status_supported=True
+        )
+
+    def _handler(self, request, response):
         try:
-          inSource = ogr.Open(self.data.getValue())
+          inSource = ogr.Open(request.inputs['data'][0].file)
           inFeature = inSource.GetLayer().GetNextFeature()
           origineline = inFeature.GetGeometryRef()
-          transformation = (self.projection.getValue() != self.SOURCEPROJECTION)
-        except Exception,e:
+          transformation = (request.inputs['data'][0].data != self.SOURCEPROJECTION)
+          logging.info("Step 1")
+        except Exception as e:
           return "Impossible ouvrir fichier: %s" % e
 
-        #Transformation       
+        #Transformation
         if (transformation):
           insrs = osr.SpatialReference()
-          insrs.ImportFromEPSG(self.projection.getValue())
+          insrs.ImportFromEPSG(request.inputs['projection'][0].data)
           sourcesrs = osr.SpatialReference()
           sourcesrs.ImportFromEPSG(self.SOURCEPROJECTION)
           trans = osr.CoordinateTransformation(insrs, sourcesrs)
           trans2 = osr.CoordinateTransformation(sourcesrs, insrs)
           origineline.Transform(trans)
-          
+          logging.info("Step 2")
+
         start_time = time.time()
         versiongdal=str(gdal.VersionInfo())
-        outputFormat = self.outputformat.getValue()
-        Referentiel = self.referentiel.getValue()
-        Distance = self.distance.getValue()
+        logging.info("Step 3 %s" % versiongdal)
+        outputFormat = request.inputs['outputformat'][0].data
+        Referentiel = request.inputs['referentiel'][0].data
+        Distance = request.inputs['distance'][0].data
         gtype = origineline.GetGeometryType()
-        self.status.set("Geometry",gtype)
+        response.update_status("Geometry",gtype)
         if  not (gtype == ogr.wkbLineString or gtype == ogr.wkbMultiLineString):
             raise Exception("Le traitement fonctionne uniquement avec des geometries linestring or multilinestring")
         if (Distance > 0):
-          self.status.set("Densification de la ligne",20)
+          response.update_status("Densification de la ligne",20)
           line=densify(origineline,"UNIFORM",Distance)
         else:
           line = origineline
-        
+
         # register all of the GDAL drivers
         gdal.AllRegister()
 
         # open the image
-        self.status.set("Opening MNT",30)
-        
+        response.update_status("Opening MNT",30)
+
         #if Referentiel == 'srtm 90':
-        #  img = gdal.Open('/var/data/srtm93_03.tif', GA_ReadOnly) 
-        img = gdal.Open(self.REFERENTIELS["paths"][Referentiel], GA_ReadOnly)      
-        
+        #  img = gdal.Open('/var/data/srtm93_03.tif', GA_ReadOnly)
+        img = gdal.Open(self.REFERENTIELS["paths"][Referentiel], GA_ReadOnly)
+
         if img is None:
           return Exception('Could not open %s' % (Referentiel))
           sys.exit(1)
@@ -279,7 +304,7 @@ class Process(WPSProcess):
           reponse = '{"points": ['
         if (outputFormat == 'text'):
           reponse = ""
-        self.status.set("Calcul",50)
+        response.update_status("Calcul",50)
         distance = 0
         distancetotale = 0
         denivelepos = 0
@@ -292,29 +317,29 @@ class Process(WPSProcess):
         band = img.GetRasterBand(1) # 1-based index
         successpoint=0
         dfNoData = band.GetNoDataValue()
-        if dfNoData is not None:            
+        if dfNoData is not None:
           nodatavalue = dfNoData
-        
+
         allpoints = range(line.GetPointCount())
         processedpoints = allpoints[0:self.MAXPOINTSRETURNED:1]
         for i in processedpoints:
           x = line.GetX(i)
           y = line.GetY(i)
-          if (successpoint > 0):            
+          if (successpoint > 0):
             precPoint = curPoint
             precAltitude = curAltitude
           curPoint = ogr.CreateGeometryFromWkt('POINT('+str(x) +' ' +str(y)+')')
           # compute pixel offset
           xOffset = int((x - xOrigin) / pixelWidth)
           yOffset = int((y - yOrigin) / pixelHeight)
-          
+
           # read data and add the value to the string
-          
+
           data = band.ReadAsArray(xOffset, yOffset, 1, 1)
           if data is not None:
             if (successpoint == 1):
               firstpoint = precPoint
-            
+
             curAltitude = float(data[0,0])
             #gestion des nodata
             if abs(curAltitude) <1000:
@@ -329,7 +354,7 @@ class Process(WPSProcess):
                   else:
                     deniveleneg = deniveleneg + denivele
                   reponse = reponse + ","
-                  
+
                 if (transformation):
                   projxy=trans2.TransformPoint(x,y,0.)
                   x=projxy[0]
@@ -346,7 +371,7 @@ class Process(WPSProcess):
               continue
           else:
             return Exception('Le referentiel utilise ne couvre pas integralement la ligne passe en parametre')
-          
+
         if (outputFormat == 'json' and firstpoint is not None):
           executedtime = time.time() - start_time
           if (transformation):
@@ -365,8 +390,6 @@ class Process(WPSProcess):
                                   ',"executedtime":"' + str(executedtime) + '"'+
                                   ',"gdalversion":"'+ str(versiongdal) +'"}')
           reponse = '{"profile":' + reponse + '],' + infos + '}}'
-          self.result.setValue(reponse)
-          
-        return
+          response.outputs['result'].data = reponse
 
-
+        return response

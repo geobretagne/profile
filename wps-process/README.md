@@ -3,6 +3,70 @@ Process pywps
 Le script python getProfileProcess est un Géotraitement [pywps] inspiré pour la partie densification de (https://svn.osgeo.org/gdal/trunk/gdal/swig/python/samples/densify.py)
 Copier ce fichier dans le dossier processes d'une instance [pywps] (http://pywps.wald.intevation.org/documentation/process.html)
 
+Prérequis
+=========
+
+## Installer pywps 4 et les dépendances gdal
+
+https://pywps.readthedocs.io/en/latest/install.html
+
+```
+sudo apt-get install python3-gdal python3-dev gdal-bin libgdal-dev
+mkdir /home/profile
+cd /home/profile
+python3 -m venv venv
+. venv/bin/activate
+pip install wheel
+pip install -e git+https://github.com/geopython/pywps.git@4.2.4#egg=pywps
+
+```
+
+## Copier les datas
+
+```
+mkdir /var/data
+cd /var/data
+wget https://github.com/geobretagne/profile/raw/pywps4.2/sample/srtm93_03.tif
+
+```
+
+
+## Installer pywps-flask
+
+```
+cd /home/profile
+git clone https://github.com/geopython/pywps-flask.git pywps-flask
+cd pywps-flask
+pip install -r requirements.txt
+
+```
+
+
+## Installer profil en long
+
+```
+pip install numpy
+pip install GDAL==2.4.0 --global-option=build_ext --global-option="-I/usr/include/gdal"
+
+
+cd pywps-flask/processes
+wget https://raw.githubusercontent.com/geobretagne/profile/pywps4.2/wps-process/getProfileProcess.py
+cd ..
+wget https://raw.githubusercontent.com/geobretagne/profile/pywps4.2/wps-process/config.json
+wget https://raw.githubusercontent.com/geobretagne/profile/pywps4.2/wps-process/profile.py
+
+python3 profile.py -a
+
+```
+
+
+## Tester
+
+localhost:5000/wps?service=wps&request=getcapabilities
+
+
+
+
 Principe
 ========
 Sur la base d'une polyligne passée en paramètre, le process retourne un tableau de points enrichi de l'altitude calculée pour chaque point
@@ -16,11 +80,11 @@ paramètres d'entrée
 
 Exemple de réponse WPS
 ```<?xml version="1.0" encoding="utf-8"?>
-<wps:ExecuteResponse xmlns:wps="http://www.opengis.net/wps/1.0.0" xmlns:ows="http://www.opengis.net/ows/1.1" 
-xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-xsi:schemaLocation="http://www.opengis.net/wps/1.0.0 http://schemas.opengis.net/wps/1.0.0/wpsExecute_response.xsd" 
-service="WPS" version="1.0.0" xml:lang="en-CA" 
-serviceInstance="http://geobretagne.fr/wps/mnt?service=WPS&amp;request=GetCapabilities&amp;version=1.0.0" 
+<wps:ExecuteResponse xmlns:wps="http://www.opengis.net/wps/1.0.0" xmlns:ows="http://www.opengis.net/ows/1.1"
+xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.opengis.net/wps/1.0.0 http://schemas.opengis.net/wps/1.0.0/wpsExecute_response.xsd"
+service="WPS" version="1.0.0" xml:lang="en-CA"
+serviceInstance="http://geobretagne.fr/wps/mnt?service=WPS&amp;request=GetCapabilities&amp;version=1.0.0"
 statusLocation="http://geobretagne.fr/wps/outputs/pywps-143705296593.xml">
     <wps:Process wps:processVersion="2.1">
         <ows:Identifier>getProfileProcess3</ows:Identifier>
@@ -50,11 +114,3 @@ TODO
 ====
 Le traitement fonctionne pour le moment avec des mnt projetés dans un système métrique (EPSG:2154)
 Il ne fonctionne pas avec des mnt en (EPSG:4326)
-
-
-
-
-
-
-
-
