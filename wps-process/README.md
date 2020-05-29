@@ -54,6 +54,7 @@ wget https://raw.githubusercontent.com/geobretagne/profile/pywps4.2/wps-process/
 cd ..
 wget https://raw.githubusercontent.com/geobretagne/profile/pywps4.2/wps-process/config.json
 wget https://raw.githubusercontent.com/geobretagne/profile/pywps4.2/wps-process/profile.py
+wget https://raw.githubusercontent.com/geobretagne/profile/pywps4.2/wps-process/text.xml
 
 python3 profile.py -a
 
@@ -62,7 +63,11 @@ python3 profile.py -a
 
 ## Tester
 
-localhost:5000/wps?service=wps&request=getcapabilities
+``curl - X GET localhost:5000/wps?service=wps&request=getcapabilities``
+
+``curl -XGET "http://localhost:5000/wps?request=DescribeProcess&service=wps&version=1.0.0&identifier=getProfileProcess"``
+
+``curl -d "@test.xml" -X POST "http://localhost:5000/wps" -H "Content-Type: text/xml"``
 
 
 
