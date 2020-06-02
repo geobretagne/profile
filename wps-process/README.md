@@ -54,7 +54,7 @@ wget https://raw.githubusercontent.com/geobretagne/profile/pywps4.2/wps-process/
 cd ..
 wget https://raw.githubusercontent.com/geobretagne/profile/pywps4.2/wps-process/config.json
 wget https://raw.githubusercontent.com/geobretagne/profile/pywps4.2/wps-process/profile.py
-wget https://raw.githubusercontent.com/geobretagne/profile/pywps4.2/wps-process/text.xml
+wget https://raw.githubusercontent.com/geobretagne/profile/pywps4.2/wps-process/test.xml
 
 python3 profile.py -a
 
