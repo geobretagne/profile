@@ -69,7 +69,37 @@ python3 profile.py -a
 
 ``curl -d "@test.xml" -X POST "http://localhost:5000/wps" -H "Content-Type: text/xml"``
 
+## Create service with gunicorn
 
+``pip install gunicorn``
+
+ * Create a .service file for the api. (/etc/systemd/system/pywps-profile.service):
+
+```
+[Unit]
+Description=pywps-profile
+After=network.target
+
+[Service]
+User=sig
+Restart=on-failure
+WorkingDirectory=/home/profile/pywps-flask/
+ExecStart=/home/profile/venv/bin/gunicorn -b 0.0.0.0:6000 profile:app
+
+[Install]
+WantedBy=multi-user.target
+
+```
+
+
+ * Enable and start the service
+
+```
+    $ sudo systemctl daemon-reload
+    $ sudo systemctl enable pywps-profile
+    $ systemctl start pywps-profile
+    
+``` 
 
 
 Principe
